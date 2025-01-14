@@ -4,20 +4,20 @@ export const ARBITRAGE_CONFIG = {
   
   // 交易金额配置
   MIN_TRADE_AMOUNT: {
-    ETH: 0.01n * 10n ** 18n,  // 0.01 ETH
-    USDC: 10n * 10n ** 6n,    // 10 USDC
-    USDT: 10n * 10n ** 6n,    // 10 USDT
+    ETH: BigInt('10000000000000000'), // 0.01 ETH
+    USDC: BigInt('10000000'),         // 10 USDC
+    USDT: BigInt('10000000'),         // 10 USDT
   },
   
   MAX_TRADE_AMOUNT: {
-    ETH: 1n * 10n ** 18n,     // 1 ETH
-    USDC: 1000n * 10n ** 6n,  // 1000 USDC
-    USDT: 1000n * 10n ** 6n,  // 1000 USDT
+    ETH: BigInt('1000000000000000000'),     // 1 ETH
+    USDC: BigInt('1000000000000'),  // 1000 USDC
+    USDT: BigInt('1000000000000'),  // 1000 USDT
   },
 
   // Gas 配置
-  MAX_GAS_PRICE: 100n * 10n ** 9n, // 100 Gwei
-  MIN_PROFIT_AFTER_GAS: 20n * 10n ** 6n, // 最小 20 USDC 利润（扣除 gas 后）
+  MAX_GAS_PRICE: BigInt('100000000000'), // 100 Gwei
+  MIN_PROFIT_AFTER_GAS: BigInt('20000000'), // 最小 20 USDC 利润（扣除 gas 后）
   
   // 更新频率（毫秒）
   PRICE_UPDATE_INTERVAL: 1000, // 每秒更新一次价格

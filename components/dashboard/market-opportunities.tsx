@@ -20,9 +20,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { SimulateModal } from "@/components/arbitrage/SimulateModal"
-import { toast } from "react-hot-toast"
+import { toast } from "@/components/ui/use-toast"
 
 interface MarketOpportunitiesProps {
   className?: string
@@ -35,6 +36,7 @@ export function MarketOpportunities({ className }: MarketOpportunitiesProps) {
   const [currentScanInfo, setCurrentScanInfo] = useState("")
   const [selectedOpportunity, setSelectedOpportunity] = useState<typeof opportunities[0] | null>(null)
   const [showSimulate, setShowSimulate] = useState(false)
+  const [analyzingOpportunityId, setAnalyzingOpportunityId] = useState<number | null>(null)
 
   // 走马灯效果
   useEffect(() => {
@@ -49,12 +51,51 @@ export function MarketOpportunities({ className }: MarketOpportunitiesProps) {
     return () => clearInterval(interval)
   }, [scanningInfo])
 
-  const handleAnalyze = async (opportunity: typeof opportunities[0]) => {
-    const success = await analyzeOpportunity(opportunity)
-    if (success) {
-      setShowAnalysis(true)
-    } else {
-      toast.error('分析失败，请重试')
+  const handleAnalyze = async (opportunity: typeof opportunities[0], index: number) => {
+    if (analyzing) {
+      console.log('Already analyzing, skipping...')
+      return
+    }
+    
+    try {
+      console.log('Starting analysis for opportunity:', opportunity)
+      console.log('Setting analyzingOpportunityId to:', index)
+      setAnalyzingOpportunityId(index)
+      
+      console.log('Calling analyzeOpportunity...')
+      const success = await analyzeOpportunity(opportunity)
+      console.log('Analysis result:', success)
+      
+      if (success) {
+        console.log('Analysis successful, setting opportunity and showing dialog')
+        setSelectedOpportunity(opportunity)
+        setShowAnalysis(true)
+        
+        // 验证状态是否正确设置
+        console.log('Current state after success:', {
+          selectedOpportunity: opportunity,
+          showAnalysis: true,
+          analyzing: false,
+          analyzingOpportunityId: null
+        })
+      } else {
+        console.log('Analysis returned false')
+        toast({
+          title: "分析未完成",
+          description: "请稍后重试",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Analysis failed with error:', error)
+      toast({
+        title: "分析失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        variant: "destructive"
+      })
+    } finally {
+      console.log('Resetting analyzingOpportunityId')
+      setAnalyzingOpportunityId(null)
     }
   }
 
@@ -69,7 +110,10 @@ export function MarketOpportunities({ className }: MarketOpportunitiesProps) {
     try {
       const success = await executeArbitrage(selectedOpportunity)
       if (success) {
-        // 可以添加成功提示
+        toast({
+          title: "执行成功",
+          description: "套利交易已提交",
+        })
       }
     } finally {
       setSelectedOpportunity(null)
@@ -135,14 +179,17 @@ export function MarketOpportunities({ className }: MarketOpportunitiesProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleAnalyze(opp)}
+                        onClick={() => handleAnalyze(opp, index)}
                         disabled={analyzing}
+                        title="AI分析"
+                        className="gap-2"
                       >
-                        {analyzing ? (
+                        {analyzingOpportunityId === index ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Brain className="h-4 w-4" />
                         )}
+                        AI分析
                       </Button>
                     </div>
                   </TableCell>
@@ -174,12 +221,45 @@ export function MarketOpportunities({ className }: MarketOpportunitiesProps) {
           <DialogHeader>
             <DialogTitle>套利机会分析</DialogTitle>
             <DialogDescription>
-              AI 分析结果
+              {selectedOpportunity ? (
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <div>交易对：{selectedOpportunity.pair}</div>
+                  <div>交易路径：{selectedOpportunity.buyDex} → {selectedOpportunity.sellDex}</div>
+                  <div>价格差：+{selectedOpportunity.priceGap.toFixed(2)}%</div>
+                  <div>预期收益：${selectedOpportunity.profitUSD.toFixed(2)}</div>
+                </div>
+              ) : (
+                <div>加载中...</div>
+              )}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 whitespace-pre-wrap">
-            {analysis}
+          <div className="mt-4 whitespace-pre-wrap text-sm">
+            {analysis || '正在生成分析结果...'}
           </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                console.log('Closing analysis dialog')
+                setShowAnalysis(false)
+                setSelectedOpportunity(null)
+              }}
+            >
+              关闭
+            </Button>
+            {selectedOpportunity && (
+              <Button
+                onClick={() => {
+                  console.log('Executing arbitrage from analysis dialog')
+                  setShowAnalysis(false)
+                  setSelectedOpportunity(null)
+                  handleExecute(selectedOpportunity)
+                }}
+              >
+                执行套利
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
